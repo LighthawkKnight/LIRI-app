@@ -38,6 +38,12 @@ switch(command) {
         else
             spotifyDefault();
         break;
+    case "my-tweets":
+        if (options)
+            twitterUserSearch();
+        else
+            twitterDefault();
+        break;
     default:
         readMe();
 }
@@ -79,6 +85,7 @@ function spotifySongSearch(){
 
         var itemsArr = data.tracks.items;
 
+        lineBreak();
         itemsArr.forEach(function(item){
             outputSongInfo(item);
         });
@@ -103,17 +110,64 @@ function outputSongInfo(song){
     else if (song.artists.length === 1)
         artists += song.artists[0].name;
 
-    console.log("");
     console.log("Song Name:  " + song.name);
     console.log("Artist(s):  " + artists);
     console.log("Album:      " + song.album.name);
     console.log("Released:   " + song.album.release_date);
     console.log("Preview:    " + song.preview_url);
-    console.log("");
-    console.log("--------------------------------------------------------------------------");
+    lineBreak();
+}
+
+function twitterDefault() {
+    twitter.get('search/tweets', {q: '@SonWukongSSJ', count: 20}, function(err, tweets, response) {
+        if (err)
+            return console.error("Twitter default search error", err);
+        // console.log(util.inspect(tweets, false, null, true));
+
+        for (var i = 0; i < tweets.statuses.length; i++) {
+            outputTweet(tweets.statuses[i]);
+        }
+    });
+}
+
+function twitterUserSearch() {
+
+    var user = options[0];
+    var count = parseInt(options[1]);
+
+    if (user.charAt(0) != '@')
+        user = '@' + user;
+
+    if (count < 0 || count > 20)
+        count = 20;
+
+    twitter.get('search/tweets', {q: user, count: count}, function(err, tweets, response) {
+        if (err)
+            return console.error("Twitter user search error", err);
+        // console.log(util.inspect(tweets, false, null, true));
+
+        lineBreak();
+        for (var i = 0; i < tweets.statuses.length; i++) {
+            outputTweet(tweets.statuses[i]);
+        }
+    });    
+}
+
+function outputTweet(tweet){
+    console.log("Tweet Date:");
+    console.log(tweet.created_at);
+    console.log("")
+    console.log("Text:");
+    console.log(tweet.text);
+    lineBreak();
 }
 
 
+function lineBreak(){
+    console.log("");
+    console.log("===================================================================================");
+    console.log("");
+}
 
 function readMe(){
     console.log("Invalid command");

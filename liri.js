@@ -16,7 +16,6 @@ const omdbDefault = 'Mr. Nobody';
 const twitterDefault = '@wojespn'
 const twitterDefaultCount = 20;
 
-// movie-this '<movie name here>'
 // npm install -g inspect-process
 
 var command = null;
@@ -48,8 +47,7 @@ function commandReader(command, options){
         break;
     case "do-what-it-says":
         doWhatItSays();
-        break;
-    
+        break; 
     case "my-tweets":
         if (options) {
             var arr = options.split(" ")
@@ -83,8 +81,7 @@ function spotifySongSearch(queryStr){
             return console.error("Spotify song search error", err);
 
         var itemsArr = data.tracks.items;
-        console.log(lineBreak);
-
+        outputStream(lineBreak);
         if (queryStr == spotifyDefault) {
             var artistArr = [];
             itemsArr.forEach(function(item){
@@ -118,12 +115,14 @@ function outputSongInfo(song){
     else if (song.artists.length === 1)
         artists += song.artists[0].name;
 
-    console.log("Song Name:  " + song.name);
-    console.log("Artist(s):  " + artists);
-    console.log("Album:      " + song.album.name);
-    console.log("Released:   " + song.album.release_date);
-    console.log("Preview:    " + song.preview_url);
-    console.log(lineBreak);
+    var output = [
+        "Song Name:  " + song.name,
+        "Artist(s):  " + artists,
+        "Album:      " + song.album.name,
+        "Released:   " + song.album.release_date,
+        "Preview:    " + song.preview_url,
+        lineBreak].join('\n');
+    outputStream(output);
 }
 
 function twitterUserSearch(user, count) {
@@ -132,12 +131,13 @@ function twitterUserSearch(user, count) {
         if (err)
             return console.error("Twitter user search error", err);
         // console.log(util.inspect(tweets, false, null, true));
-
-        console.log(lineBreak);
+        outputStream(lineBreak);
         for (var i = 0; i < tweets.statuses.length; i++) {
-            console.log("Tweet Date:\n" + tweets.statuses[i].created_at);
-            console.log("\nText:\n" + tweets.statuses[i].text);
-            console.log(lineBreak);
+            var output = [
+                "Tweet Date:\n" + tweets.statuses[i].created_at,
+                "\nText:\n" + tweets.statuses[i].text,
+                lineBreak].join('\n');
+            outputStream(output);
         }
     });    
 }
@@ -158,16 +158,18 @@ function twitterUserSearch(user, count) {
             console.error("Omdb movie search error", err);
         data = JSON.parse(data);
         // console.log(util.inspect(data, false, null, true));
-        console.log(lineBreak);
-        console.log("Title:  " + data.Title);
-        console.log("Year:  " + data.Year);
-        console.log("IMDB Rating:  " + data.imdbRating);
-        console.log("Rotten Tomatoes:  " + findObjectByKey(data.Ratings, 'Source', 'Rotten Tomatoes').Value);
-        console.log("Country Produced:  " + data.Country);
-        console.log("Language:  " + data.Language);
-        console.log("Actors:  " + data.Actors);
-        console.log("Plot summary: " + data.Plot);
-        console.log(lineBreak);
+        var output = [
+            lineBreak,
+            "Title:  " + data.Title,
+            "Year:  " + data.Year,
+            "IMDB Rating:  " + data.imdbRating,
+            "Rotten Tomatoes:  " + findObjectByKey(data.Ratings, 'Source', 'Rotten Tomatoes').Value,
+            "Country Produced:  " + data.Country,
+            "Language:  " + data.Language,
+            "Actors:  " + data.Actors,
+            "Plot summary: " + data.Plot,
+            lineBreak].join('\n');
+        outputStream(output);
     });
 }
 
@@ -183,12 +185,14 @@ function bandsInTown(artist = "") {
             console.error("Bands in Town API search error", err);
 
         data = JSON.parse(data);
-        console.log(lineBreak);
+        outputStream(lineBreak);
         data.forEach(function(item){
-            console.log("Venue:     " + item.venue.name);
-            console.log("Location:  " + item.venue.city);
-            console.log("Date:      " + moment(item.datetime,'YYYY-MM-DD').format('MM/DD/YYYY'));
-            console.log(lineBreak);
+            var output = [
+                "Venue:     " + item.venue.name,
+                "Location:  " + item.venue.city,
+                "Date:      " + moment(item.datetime,'YYYY-MM-DD').format('MM/DD/YYYY'),
+                lineBreak].join('\n');
+            outputStream(output);
         });
 
     });
@@ -204,9 +208,17 @@ function doWhatItSays() {
     });
 }
 
+function outputStream(output) {
+    console.log(output);
+    fs.appendFile("log.txt", output, (err) => {
+        if (err) console.error ("fs append file error", error);
+    });
+    
+}
+
 function readMe(){
-    console.log("Invalid or no command found.\n\nValid commands are:\n--------------")
-    console.log("movie-this (movie name)\nspotify-this-song (song title)\nmy-tweets (twitter handle)");
+    console.log("\nInvalid or no command found.\n\nValid commands are:\n--------------")
+    console.log("movie-this (movie name)\nspotify-this-song (song title)\nmy-tweets (twitter handle)\nconcert-this (artist/band)\ndo-what-it-says");
 }
 
 function findObjectByKey(array, key, value) {

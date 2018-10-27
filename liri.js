@@ -3,22 +3,25 @@ var Twitter = require('twitter');
 var Spotify = require('node-spotify-api');
 var keys = require('./keys.js');
 var request = require('request');
+var fs = require("fs");
 const util = require('util')
 
 var spotify = new Spotify(keys.spotify);
 var twitter = new Twitter(keys.twitter);
 
 // movie-this '<movie name here>'
+// npm install -g inspect-process
 
 var input = process.argv;
 var command = null;
 var options = null;
+var lineBreak = "\n=============================================================================================\n";
 
 
 if (input.length >= 3) {
     command = input[2];
     if (input.length > 3) {
-        options = input.splice(3, input.length);
+        options = input.slice(3).join(" ");
     }
 }
 else
@@ -31,6 +34,10 @@ else
 
 switch(command) {
     case "movie-this":
+        if (options)
+            omdbMovieSearch(options);
+        else
+            omdbMovieSearch("Mr. Nobody");
         break;
     case "spotify-this-song":
         if (options)
@@ -85,7 +92,7 @@ function spotifySongSearch(){
 
         var itemsArr = data.tracks.items;
 
-        lineBreak();
+        console.log(lineBreak);
         itemsArr.forEach(function(item){
             outputSongInfo(item);
         });
@@ -115,11 +122,11 @@ function outputSongInfo(song){
     console.log("Album:      " + song.album.name);
     console.log("Released:   " + song.album.release_date);
     console.log("Preview:    " + song.preview_url);
-    lineBreak();
+    console.log(lineBreak);
 }
 
 function twitterDefault() {
-    twitter.get('search/tweets', {q: '@SonWukongSSJ', count: 20}, function(err, tweets, response) {
+    twitter.get('search/tweets', {q: '@KingJames', count: 20}, function(err, tweets, response) {
         if (err)
             return console.error("Twitter default search error", err);
         // console.log(util.inspect(tweets, false, null, true));
@@ -138,7 +145,7 @@ function twitterUserSearch() {
     if (user.charAt(0) != '@')
         user = '@' + user;
 
-    if (count < 0 || count > 20)
+    if (isNaN(count) || count < 0 || count > 20)
         count = 20;
 
     twitter.get('search/tweets', {q: user, count: count}, function(err, tweets, response) {
@@ -146,7 +153,7 @@ function twitterUserSearch() {
             return console.error("Twitter user search error", err);
         // console.log(util.inspect(tweets, false, null, true));
 
-        lineBreak();
+        console.log(lineBreak);
         for (var i = 0; i < tweets.statuses.length; i++) {
             outputTweet(tweets.statuses[i]);
         }
@@ -159,16 +166,52 @@ function outputTweet(tweet){
     console.log("")
     console.log("Text:");
     console.log(tweet.text);
-    lineBreak();
+    console.log(lineBreak);
 }
 
+/* * Title of the movie.
+   * Year the movie came out.
+   * IMDB Rating of the movie.
+   * Rotten Tomatoes Rating of the movie.
+   * Country where the movie was produced.
+   * Language of the movie.
+   * Plot of the movie.
+   * Actors in the movie.
+ */
 
-function lineBreak(){
-    console.log("");
-    console.log("===================================================================================");
-    console.log("");
+ function omdbMovieSearch(movieTitle){
+    var queryURL = "http://www.omdbapi.com/?t=" + movieTitle + "&y=&plot=short&apikey=trilogy"
+    
+    request(queryURL, function(err, response, data){
+        if (err)
+            console.error("Omdb movie search error", err);
+        data = JSON.parse(data);
+
+        // console.log(util.inspect(data, false, null, true));
+
+        console.log(lineBreak);
+        console.log("Title:  " + data.Title);
+        console.log("Year:  " + data.Year);
+        console.log("IMDB Rating:  " + data.imdbRating);
+        console.log("Rotten Tomatoes:  " + findObjectByKey(data.Ratings, 'Source', 'Rotten Tomatoes'));
+        console.log("Country Produced:  " + data.Country);
+        console.log("Language:  " + data.Language);
+        console.log("Actors:  " + data.Actors);
+        console.log("Plot summary: " + data.Plot);
+        console.log(lineBreak);
+
+    });
 }
 
 function readMe(){
     console.log("Invalid command");
+}
+
+function findObjectByKey(array, key, value) {
+    for (var i = 0; i < array.length; i++) {
+        if (array[i][key] === value) {
+            return array[i];
+        }
+    }
+    return null;
 }

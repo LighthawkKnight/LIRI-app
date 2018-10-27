@@ -24,59 +24,56 @@ var options = null;
 var lineBreak = "\n=============================================================================================\n";
 
 
-if (process.argv.length >= 3) {
-    command = process.argv[2];
-
-    if (process.argv.length > 3)
-        options = process.argv.slice(3);
+function commandReader(command, options){
 
     switch(command) {
-        case "movie-this":
-            if (options)
-                omdbMovieSearch(options.join(" "));
-            else
-                omdbMovieSearch(omdbDefault);
-            break;
-        case "spotify-this-song":
-            if (options)
-                spotifySongSearch(options.join(" "));
-            else
-                spotifySongSearch(spotifyDefault);
-            break;
-        case "concert-this":
-            if (options)
-                bandsInTown(options.join(" "));
-            else
-                console.log("No artist/band name entered.")
-            break;
-        case "do-what-it-says":
-            break;
-        
-        case "my-tweets":
-            if (options) {
-                var user = options[0];
-                var count = twitterDefaultCount;
-                
-                if (options.length > 1)
-                    count = parseInt(options[1]);
-            
-                if (user.charAt(0) != '@')
-                    user = '@' + user;
-            
-                if (isNaN(count) || count <= 0 || count > 20)
-                    count = 20;
 
-                twitterUserSearch(user, count);
-            }
-            else
-                twitterUserSearch(twitterDefault, twitterDefaultCount);
-            break;
-        default:
-            readMe();
+    case "movie-this":
+        if (options)
+            omdbMovieSearch(options);
+        else
+            omdbMovieSearch(omdbDefault);
+        break;
+    case "spotify-this-song":
+        if (options)
+            spotifySongSearch(options);
+        else
+            spotifySongSearch(spotifyDefault);
+        break;
+    case "concert-this":
+        if (options)
+            bandsInTown(options);
+        else
+            console.log("No artist/band name entered.")
+        break;
+    case "do-what-it-says":
+        doWhatItSays();
+        break;
+    
+    case "my-tweets":
+        if (options) {
+            var arr = options.split(" ")
+            var user = arr[0];
+            var count = twitterDefaultCount;
+            
+            if (arr.length > 1)
+                count = parseInt(arr[1]);
+        
+            if (user.charAt(0) != '@')
+                user = '@' + user;
+        
+            if (isNaN(count) || count <= 0 || count > 20)
+                count = 20;
+
+            twitterUserSearch(user, count);
+        }
+        else
+            twitterUserSearch(twitterDefault, twitterDefaultCount);
+        break;
+    default:
+        readMe();
     }
 }
-else
-    readMe();
 
 
 function spotifySongSearch(queryStr){
@@ -197,6 +194,16 @@ function bandsInTown(artist = "") {
     });
 }
 
+function doWhatItSays() {
+    fs.readFile('random.txt', 'utf8', (err, data) => {
+        if (err) throw err;
+        console.log(data);
+        var str = data.split(',');
+        str[1] = str[1].replace('"', '')
+        commandReader(str[0], str[1]);
+    });
+}
+
 function readMe(){
     console.log("Invalid or no command found.\n\nValid commands are:\n--------------")
     console.log("movie-this (movie name)\nspotify-this-song (song title)\nmy-tweets (twitter handle)");
@@ -210,3 +217,12 @@ function findObjectByKey(array, key, value) {
     }
     return null;
 }
+
+if (process.argv.length >= 3) {
+    command = process.argv[2];
+    if (process.argv.length > 3)
+        options = process.argv.slice(3).join(" ");
+    commandReader(command, options);
+}
+else
+    readMe();

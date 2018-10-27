@@ -4,98 +4,102 @@ var Spotify = require('node-spotify-api');
 var keys = require('./keys.js');
 var request = require('request');
 var fs = require("fs");
+var moment = require('moment');
 const util = require('util')
 
 var spotify = new Spotify(keys.spotify);
 var twitter = new Twitter(keys.twitter);
 
+const spotifyDefault = 'The Sign';
+const spotifyArtistDefault = 'Ace of Base';
+const omdbDefault = 'Mr. Nobody';
+const twitterDefault = '@wojespn'
+const twitterDefaultCount = 20;
+
 // movie-this '<movie name here>'
 // npm install -g inspect-process
 
-var input = process.argv;
 var command = null;
 var options = null;
 var lineBreak = "\n=============================================================================================\n";
 
 
-if (input.length >= 3) {
-    command = input[2];
-    if (input.length > 3) {
-        options = input.slice(3).join(" ");
+if (process.argv.length >= 3) {
+    command = process.argv[2];
+
+    if (process.argv.length > 3)
+        options = process.argv.slice(3);
+
+    switch(command) {
+        case "movie-this":
+            if (options)
+                omdbMovieSearch(options.join(" "));
+            else
+                omdbMovieSearch(omdbDefault);
+            break;
+        case "spotify-this-song":
+            if (options)
+                spotifySongSearch(options.join(" "));
+            else
+                spotifySongSearch(spotifyDefault);
+            break;
+        case "concert-this":
+            if (options)
+                bandsInTown(options.join(" "));
+            else
+                console.log("No artist/band name entered.")
+            break;
+        case "do-what-it-says":
+            break;
+        
+        case "my-tweets":
+            if (options) {
+                var user = options[0];
+                var count = twitterDefaultCount;
+                
+                if (options.length > 1)
+                    count = parseInt(options[1]);
+            
+                if (user.charAt(0) != '@')
+                    user = '@' + user;
+            
+                if (isNaN(count) || count <= 0 || count > 20)
+                    count = 20;
+
+                twitterUserSearch(user, count);
+            }
+            else
+                twitterUserSearch(twitterDefault, twitterDefaultCount);
+            break;
+        default:
+            readMe();
     }
 }
 else
-    console.log ("No command found.");  // Maybe a helpme here
-
-// console.log(command);
-
-// if (options)
-//     console.log("options = true");
-
-switch(command) {
-    case "movie-this":
-        if (options)
-            omdbMovieSearch(options);
-        else
-            omdbMovieSearch("Mr. Nobody");
-        break;
-    case "spotify-this-song":
-        if (options)
-            spotifySongSearch();
-        else
-            spotifyDefault();
-        break;
-    case "my-tweets":
-        if (options)
-            twitterUserSearch();
-        else
-            twitterDefault();
-        break;
-    default:
-        readMe();
-}
+    readMe();
 
 
-function spotifyDefault(){
-    // "The Sign" by Ace of Base
-    spotify.search({type: 'track', query: 'The Sign'}, function(err, data) {
-        if (err)
-            return console.error("Spotify default search error", err);
-        // console.log(util.inspect(data, false, null, true))
-        var itemsArr = data.tracks.items;
-        var artistArr = [];
-
-        itemsArr.forEach(function(item){
-            artistArr.push(item.artists[0].name);
-        });
-        
-        outputSongInfo(data.tracks.items[artistArr.indexOf("Ace of Base")]);
-        
-        // console.log(util.inspect(data.tracks.items[artistArr.indexOf("Ace of Base")], false, null, true));
-                
-
-    });
-}
-
-function spotifySongSearch(){
-    var queryStr = ""
-
-    for (var i = 0; i < options.length; i++)
-        if (i < options.length-1)
-            queryStr += options[i] + " ";
-        else
-            queryStr += options[i];
+function spotifySongSearch(queryStr){
 
     spotify.search({type: 'track', query: queryStr}, function(err, data){
         if (err)
             return console.error("Spotify song search error", err);
 
         var itemsArr = data.tracks.items;
-
         console.log(lineBreak);
-        itemsArr.forEach(function(item){
-            outputSongInfo(item);
-        });
+
+        if (queryStr == spotifyDefault) {
+            var artistArr = [];
+            itemsArr.forEach(function(item){
+                artistArr.push(item.artists[0].name);
+            });           
+            outputSongInfo(data.tracks.items[artistArr.indexOf(spotifyArtistDefault)]);
+        }
+        else {
+            itemsArr.forEach(function(item){
+                outputSongInfo(item);
+            });
+        }
     });
 }
 
@@ -125,28 +129,7 @@ function outputSongInfo(song){
     console.log(lineBreak);
 }
 
-function twitterDefault() {
-    twitter.get('search/tweets', {q: '@KingJames', count: 20}, function(err, tweets, response) {
-        if (err)
-            return console.error("Twitter default search error", err);
-        // console.log(util.inspect(tweets, false, null, true));
-
-        for (var i = 0; i < tweets.statuses.length; i++) {
-            outputTweet(tweets.statuses[i]);
-        }
-    });
-}
-
-function twitterUserSearch() {
-
-    var user = options[0];
-    var count = parseInt(options[1]);
-
-    if (user.charAt(0) != '@')
-        user = '@' + user;
-
-    if (isNaN(count) || count < 0 || count > 20)
-        count = 20;
+function twitterUserSearch(user, count) {
 
     twitter.get('search/tweets', {q: user, count: count}, function(err, tweets, response) {
         if (err)
@@ -155,18 +138,11 @@ function twitterUserSearch() {
 
         console.log(lineBreak);
         for (var i = 0; i < tweets.statuses.length; i++) {
-            outputTweet(tweets.statuses[i]);
+            console.log("Tweet Date:\n" + tweets.statuses[i].created_at);
+            console.log("\nText:\n" + tweets.statuses[i].text);
+            console.log(lineBreak);
         }
     });    
-}
-
-function outputTweet(tweet){
-    console.log("Tweet Date:");
-    console.log(tweet.created_at);
-    console.log("")
-    console.log("Text:");
-    console.log(tweet.text);
-    console.log(lineBreak);
 }
 
 /* * Title of the movie.
@@ -176,9 +152,7 @@ function outputTweet(tweet){
    * Country where the movie was produced.
    * Language of the movie.
    * Plot of the movie.
-   * Actors in the movie.
- */
-
+   * Actors in the movie.*/
  function omdbMovieSearch(movieTitle){
     var queryURL = "http://www.omdbapi.com/?t=" + movieTitle + "&y=&plot=short&apikey=trilogy"
     
@@ -186,25 +160,46 @@ function outputTweet(tweet){
         if (err)
             console.error("Omdb movie search error", err);
         data = JSON.parse(data);
-
         // console.log(util.inspect(data, false, null, true));
-
         console.log(lineBreak);
         console.log("Title:  " + data.Title);
         console.log("Year:  " + data.Year);
         console.log("IMDB Rating:  " + data.imdbRating);
-        console.log("Rotten Tomatoes:  " + findObjectByKey(data.Ratings, 'Source', 'Rotten Tomatoes'));
+        console.log("Rotten Tomatoes:  " + findObjectByKey(data.Ratings, 'Source', 'Rotten Tomatoes').Value);
         console.log("Country Produced:  " + data.Country);
         console.log("Language:  " + data.Language);
         console.log("Actors:  " + data.Actors);
         console.log("Plot summary: " + data.Plot);
         console.log(lineBreak);
+    });
+}
+
+/*Name of the venue
+Venue location
+Date of the Event (use moment to format this as "MM/DD/YYYY") */
+function bandsInTown(artist = "") {
+
+    var queryURL = "https://rest.bandsintown.com/artists/" + artist + "/events?app_id=codingbootcamp"
+
+    request(queryURL, function(err, response, data){
+        if (err) 
+            console.error("Bands in Town API search error", err);
+
+        data = JSON.parse(data);
+        console.log(lineBreak);
+        data.forEach(function(item){
+            console.log("Venue:     " + item.venue.name);
+            console.log("Location:  " + item.venue.city);
+            console.log("Date:      " + moment(item.datetime,'YYYY-MM-DD').format('MM/DD/YYYY'));
+            console.log(lineBreak);
+        });
 
     });
 }
 
 function readMe(){
-    console.log("Invalid command");
+    console.log("Invalid or no command found.\n\nValid commands are:\n--------------")
+    console.log("movie-this (movie name)\nspotify-this-song (song title)\nmy-tweets (twitter handle)");
 }
 
 function findObjectByKey(array, key, value) {

@@ -1,7 +1,7 @@
 {
   "name": "liri-app",
   "version": "1.0.0",
-  "description": "LIRI, a SIRI clone using the command line",
+  "description": "LIRI (Language Interpretation and Recognition Interface) is a SIRI clone using the command line",
   "main": "liri.js",
   "dependencies": {
     "dotenv": "^6.1.0",

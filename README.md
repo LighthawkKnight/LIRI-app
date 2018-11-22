@@ -12,4 +12,4 @@ Harness the power of the node LIRI app (a **L**anguage **I**nterpretation and **
 Note:  All commands will run a query for a specified default value if options are left blank.
 
 ## Requirements
-Must provide your own Twitter and Spotify developer keys as well as your own npm modules to use.
+Must provide your own Twitter and Spotify developer keys.
